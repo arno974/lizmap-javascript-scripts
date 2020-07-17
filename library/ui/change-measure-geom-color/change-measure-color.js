@@ -22,8 +22,8 @@ lizMap.events.on({
 				strokeOpacity: 1,
 				strokeColor: "#ce1f2d",
 				strokeDashstyle: "dash",
-				fillColor: "white",
-				fillOpacity: 0.3
+				fillColor: "#ce1f2d",
+				fillOpacity: 0.5
 			}
 		};
 		var style = new OpenLayers.Style();
