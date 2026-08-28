@@ -15,6 +15,7 @@
     "badge_since": "LWC {v}+",
     "badge_featured": "Featured",
     "badge_updated": "Updated",
+    "updated_on": "Updated {d}",
     "replaced_by": "Replace with: {x}"
   },
   "fr": {
@@ -33,6 +34,7 @@
     "badge_since": "LWC {v}+",
     "badge_featured": "Recommandé",
     "badge_updated": "Mis à jour",
+    "updated_on": "Mis à jour en {d}",
     "replaced_by": "Remplacer par : {x}"
   },
   "es": {
@@ -51,6 +53,7 @@
     "badge_since": "LWC {v}+",
     "badge_featured": "Recomendado",
     "badge_updated": "Actualizado",
+    "updated_on": "Actualizado en {d}",
     "replaced_by": "Reemplazar por: {x}"
   },
   "it": {
@@ -69,6 +72,7 @@
     "badge_since": "LWC {v}+",
     "badge_featured": "Consigliato",
     "badge_updated": "Aggiornato",
+    "updated_on": "Aggiornato a {d}",
     "replaced_by": "Sostituire con: {x}"
   }
 }

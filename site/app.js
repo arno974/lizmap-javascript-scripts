@@ -200,6 +200,7 @@ function render() {
           ${s.status === 'deprecated' && s.replaced_by ? `<p class="repl">${escape(fill(t.replaced_by, { x: s.replaced_by }))}</p>` : ''}
           ${s.description ? `<p class="desc">${escape(s.description)}</p>` : ''}
         </div>
+        ${s.updated ? `<p class="card-meta"><time datetime="${escape(s.updated)}" title="${escape(s.updated)}">${escape(fill(t.updated_on, { d: formatDate(s.updated) }))}</time></p>` : ''}
       </li>`,
     )
     .join('');
@@ -213,6 +214,12 @@ function isRecent(iso) {
   if (!iso) return false;
   const days = (Date.now() - Date.parse(iso)) / 86400000;
   return days >= 0 && days <= 90;
+}
+
+/** "2025-03-12" -> "mars 2025" (mois + annee, selon la langue courante). */
+function formatDate(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? iso : d.toLocaleDateString(lang, { year: 'numeric', month: 'long' });
 }
 
 function escape(str) {

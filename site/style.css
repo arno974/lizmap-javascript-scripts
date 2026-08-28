@@ -410,6 +410,13 @@ main { flex: 1; min-width: 0; }
   color: var(--text-muted);
 }
 
+.card-meta {
+  margin: .55rem 0 0;
+  font-size: .72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* pastille de statut discrete a gauche du titre */
 .card.active .card-head::before,
 .card.deprecated .card-head::before {

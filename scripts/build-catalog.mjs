@@ -11,12 +11,17 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const LIB = path.join(ROOT, 'library');
 const CHECK = process.argv.includes('--check');
 
-/** Date du dernier commit touchant ce dossier ("YYYY-MM-DD"), ou null. */
+/**
+ * Date du dernier commit ayant touche ce snippet ("YYYY-MM-DD"), ou null.
+ * On exclut le README.md : ses edits sont de la doc (front-matter, corrections),
+ * pas une modif du script. Sinon un commit qui retouche tous les README d'un
+ * coup remettrait toutes les dates a la meme valeur.
+ */
 async function lastCommitDate(rel) {
   try {
     const { stdout } = await execFileAsync(
       'git',
-      ['log', '-1', '--format=%cs', '--', rel],
+      ['log', '-1', '--format=%cs', '--', rel, `:(exclude)${rel}/README.md`],
       { cwd: ROOT },
     );
     return stdout.trim() || null;
