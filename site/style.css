@@ -431,6 +431,20 @@ main { flex: 1; min-width: 0; }
 
 .empty { color: var(--text-muted); }
 
+
+.list-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .list-header .count { margin: 0; }
+  .sort { font-size: .8rem; color: var(--text-muted); display: flex; gap: .4rem; align-items: center; }
+  .sort select { font: inherit; font-size: .8rem; padding: .2rem .4rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); }
+
+
 /* --- Responsive ------------------------------------------------------- */
 
 @media (max-width: 760px) {

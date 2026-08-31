@@ -51,7 +51,17 @@
     </aside>
 
     <main>
-      <p id="count" class="count"></p>
+      <div class="list-header">
+        <p id="count" class="count"></p>
+        <label class="sort">
+          <span data-i18n="sort_label">Sort by</span>
+          <select id="sort">
+            <option value="title" data-i18n="sort_title">Name (A-Z)</option>
+            <option value="updated-desc" data-i18n="sort_updated_desc">Recently updated</option>
+            <option value="updated-asc" data-i18n="sort_updated_asc">Least recently updated</option>
+          </select>
+        </label>
+      </div>
       <ul id="list" class="cards"></ul>
       <p id="empty" class="empty" hidden
          data-i18n="empty">No script matches the filters.</p>

@@ -19,7 +19,8 @@ function pickLang() {
 const lang = pickLang();
 let t = {};
 
-const state = { q: '', category: null, tags: new Set(), deprecated: false, featured: false };
+const state = { q: '', category: null, tags: new Set(), deprecated: false, featured: false, sort: 'title' };
+
 let snippets = [];
 
 const $list = document.getElementById('list');
@@ -52,7 +53,6 @@ Promise.all([
 /* --- Libelles fixes du HTML ---------------------------------------- */
 function applyStaticStrings() {
   document.querySelectorAll('[data-i18n]').forEach((el) => {
-    console.log(t[el.dataset.i18n]);
     if (t[el.dataset.i18n]) el.textContent = t[el.dataset.i18n];
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
@@ -146,15 +146,24 @@ document.getElementById('showFeaturedOnly').addEventListener('change', (e) => {
   render();
 });
 
+document.getElementById('sort').addEventListener('change', (e) => {
+  state.sort = e.target.value;
+  render();
+});
+
 document.getElementById('reset').addEventListener('click', () => {
   state.q = '';
   state.category = null;
   state.tags.clear();
   state.deprecated = false;
   state.featured = false;
+  state.sort = 'title';
+  
   document.getElementById('q').value = '';
   document.getElementById('showDeprecated').checked = false;
   document.getElementById('showFeaturedOnly').checked = false;
+  document.getElementById('sort').value = 'title';
+  
   document
     .querySelectorAll('.chip input')
     .forEach((i) => (i.checked = false));
@@ -175,11 +184,13 @@ function matches(s) {
 }
 
 function render() {
-  // .sort de JS est stable -> les snippets restent tries par titre,
-  // les "featured" remontent juste en tete du resultat courant.
   const items = snippets
     .filter(matches)
-    .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+    .sort((a, b) =>
+      (b.featured ? 1 : 0) - (a.featured ? 1 : 0)   // featured toujours en tête
+      || compareBy(state.sort)(a, b),
+    );
+
 
   $list.innerHTML = items
     .map(
@@ -215,6 +226,18 @@ function isRecent(iso) {
   const days = (Date.now() - Date.parse(iso)) / 86400000;
   return days >= 0 && days <= 90;
 }
+
+function compareBy(sort) {
+  const byUpd = (a, b, dir) => {
+    if (!a.updated) return 1;
+    if (!b.updated) return -1;
+    return dir * b.updated.localeCompare(a.updated); // string "YYYY-MM-DD" = ordre chrono
+  };
+  if (sort === 'updated-desc') return (a, b) => byUpd(a, b, 1);
+  if (sort === 'updated-asc')  return (a, b) => byUpd(a, b, -1);
+  return (a, b) => a.title.localeCompare(b.title, lang);
+}
+
 
 /** "2025-03-12" -> "mars 2025" (mois + annee, selon la langue courante). */
 function formatDate(iso) {
