@@ -63,7 +63,7 @@
     "badge_updated": "Actualizado",
     "updated_on": "Actualizado en {d}",
     "sort_label": "Ordenar por",
-    "sort_title": "Nombre (A–Z)",
+    "sort_title": "Nombre (A-Z)",
     "sort_updated_desc": "Actualizado (reciente → antiguo)",
     "sort_updated_asc": "Actualizado (antiguo → reciente)",
     "replaced_by": "Reemplazar por: {x}"

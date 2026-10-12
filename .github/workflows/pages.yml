@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - feat/catalog-site      # <-- LIGNE DE TEST : a retirer avant la PR upstream
   workflow_dispatch:
 
 permissions:

@@ -18,7 +18,7 @@ Run them through the npm aliases defined in `package.json`.
 - **Authored** (committed): the front-matter blocks in each snippet `README.md`,
   and `site/i18n.json`.
 - **Generated** (git-ignored, never committed): `site/catalog.json`. It is a
-  pure build artifact — rebuilt locally by `npm run build:catalog` and by the
+  pure build artifact - rebuilt locally by `npm run build:catalog` and by the
   Pages workflow on every deploy.
 - The repo's root `README.md` is **not** rewritten by any script; it only
   carries a link to the online catalog.
