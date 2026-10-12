@@ -19,15 +19,15 @@ const lizmapPanoramax = function() {
     // Title of the dock
     const DOCK_TITLE = 'Panoramax';
     
-    // LAYOUT MODES (uniquement quand DOCK_POSITION vaut 'minidock')
-    // "moitié d'écran" : carte à gauche, photos à droite, séparateur déplaçable
-    // "pleine carte"   : les photos prennent la zone carte, la carte devient une vignette
-    const SPLIT_DEFAULT_PERCENT = 50;   // part de la carte (à gauche) en moitié d'écran
-    const SPLIT_MIN_PERCENT = 20;       // bornes du séparateur
+    // LAYOUT MODES (only when DOCK_POSITION is 'minidock')
+    // "half screen": map on the left, photos on the right, draggable splitter
+    // "full map"   : photos take the map area, the map becomes a thumbnail
+    const SPLIT_DEFAULT_PERCENT = 50;   // percent of the screen occupied by the photo viewer in half-screen mode
+    const SPLIT_MIN_PERCENT = 20;       // separator bounds
     const SPLIT_MAX_PERCENT = 80;
-    const MAP_THUMBNAIL_WIDTH = 240;    // vignette carte en pleine carte (px)
+    const MAP_THUMBNAIL_WIDTH = 240;    // thumbnail width in full-panoramax mode
     const MAP_THUMBNAIL_HEIGHT = 160;
-    const MAP_THUMBNAIL_MARGIN = 20;    // distance aux bords bas et gauche
+    const MAP_THUMBNAIL_MARGIN = 20;    // distance from the right and bottom edges of the map in full-panoramax mode
     
     // ARROW ICON PROPERTIES
     const ARROW_ICON_SIZE = 0.3;
@@ -113,14 +113,60 @@ const lizmapPanoramax = function() {
     
     const PANORAMAX_JS_URL = 'https://cdn.jsdelivr.net/npm/@panoramax/web-viewer@4.4.0/build/index.min.js';
     const PANORAMAX_CSS_URL = 'https://cdn.jsdelivr.net/npm/@panoramax/web-viewer@4.4.0/build/index.min.css'
+
+    // Layout button icons (inline SVG, 20 px, inherited color)
+    const ICON_HALF = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`;
+    const ICON_FULLMAP = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`;
+    const ICON_EXIT = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`;
+
+    // Buttons slotted in the "top-right" corner of the Panoramax viewer (minidock only)
+    const LAYOUT_BUTTONS = LAYOUT_ENABLED ? `
+            <div slot="top-right" class="panoramax-layout-btns">
+                <button type="button" class="panoramax-layout-btn" data-mode="half" title="${TEXT.half}">${ICON_HALF}</button>
+                <button type="button" class="panoramax-layout-btn" data-mode="fullmap" title="${TEXT.fullMap}">${ICON_FULLMAP}</button>
+            </div>` : '';
     
+    // Layout modes CSS: appearance only, geometry is written inline by the JS
+    const LAYOUT_CSS = `
+        .panoramax-layout-btns { display: flex; gap: 6px; margin: 10px; }
+        .panoramax-layout-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px; padding: 0;
+            border: none; border-radius: 6px;
+            background: #fff; color: #333; cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0,0,0,.4);
+        }
+        .panoramax-layout-btn:hover { background: #f0f0f0; }
+        .panoramax-layout-btn.active { background: #333; color: #fff; }
+
+        /* Séparateur du mode moitié d'écran (position et taille posées inline) */
+        #panoramax-splitter {
+            cursor: col-resize; touch-action: none;
+            background: rgba(255,255,255,.5);
+            box-shadow: 0 0 4px rgba(0,0,0,.4);
+        }
+        #panoramax-splitter:hover, body.panoramax-splitting #panoramax-splitter { background: #fff; }
+        body.panoramax-splitting { user-select: none; }
+
+        /* Vignette carte du mode pleine carte (position et taille posées inline) */
+        #panoramax-map-thumbnail-overlay {
+            box-sizing: border-box;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,.5);
+            cursor: pointer;
+        }
+
+        /* Mobile Lizmap : aucun mode de layout */
+        #content.mobile .panoramax-layout-btns { display: none !important; }
+    `;
+
     // HTML Content 
-    const PHOTO_VIEWER = `<pnx-photo-viewer 
+    const PHOTO_VIEWER = `<pnx-photo-viewer
                                     endpoint="${PANORAMAX_INSTANCE}"
                                     widgets="false"
-                                    map="false"
                                     url-parameters="false"
                                     style="width: 100%; height: 300px;">
+                                    ${LAYOUT_BUTTONS}
                                 </pnx-photo-viewer>`;
 
     const HTML_TEMPLATE = `<div id="panoramax_dock_content">
@@ -129,7 +175,7 @@ const lizmapPanoramax = function() {
                         </div>`;
     
     const SVG_ARROW = `<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><path d="M48.005 2.666a2.386 2.386 0 0 0-.51.397 2.386 2.386 0 0 0-.531.844l-33.169 90.76a2.386 2.386 0 0 0 3.52 2.836l32.08-20.345 32.186 20.177a2.386 2.386 0 0 0 3.506-2.854L51.442 3.894a2.386 2.386 0 0 0-3.437-1.228Z" style="color:#000;font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-variant-east-asian:normal;font-feature-settings:normal;font-variation-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;shape-margin:0;inline-size:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000;solid-opacity:1;vector-effect:none;fill:${ARROW_ICON_COLOR};fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;stop-color:#000"/></svg>`;
-    
+
     const PANORAMAX_SOURCES = {
         IGN: {
             url: 'https://panoramax.ign.fr/api/map/{z}/{x}/{y}.mvt',
@@ -163,6 +209,19 @@ const lizmapPanoramax = function() {
                 'psv:view-rotated': null,
                 'psv:picture-loaded': null
             };
+
+            // Layout modes state (survives minidock open / close cycles)
+            this.layoutMode = null;              // null | 'half' | 'fullmap'
+            this.layoutButtons = [];             // buttons of the current viewer, recreated with it
+            this.splitPercent = SPLIT_DEFAULT_PERCENT;
+            this.splitter = null;                // splitter element, created once
+            this.splitHandlers = null;
+            this.thumbnailOverlay = null;        // clickable map thumbnail in fullmap mode
+            this.placeHandler = null;            // recompute on resize / dockopened / dockclosed
+            this.viewerStyleBackup = '';         // viewer inline style before entering a mode
+            this.olMapStyleBackup = '';          // #newOlMap inline style before entering a mode
+
+            this.#injectLayoutCss();
 
             // Load external scripts (Panoramax viewer)
             this.#loadScripts().then(success => {
@@ -258,6 +317,220 @@ const lizmapPanoramax = function() {
                 htmlContent,
                 DOCK_ICON
             );
+        }
+
+        /**
+         * Inject the layout modes CSS once
+         */
+        #injectLayoutCss(){
+            if (document.getElementById('panoramax-layout-css')) return;
+            const style = document.createElement('style');
+            style.id = 'panoramax-layout-css';
+            style.textContent = LAYOUT_CSS;
+            document.head.appendChild(style);
+        }
+
+        /**
+         * Ask OpenLayers to recompute the map size once the style has been applied
+         */
+        #refreshMap(){
+            requestAnimationFrame(() => lizMap.mainLizmap.map.updateSize());
+        }
+
+        /**
+         * Find the layout buttons in the current viewer and bind their clicks
+         * Call after oncePSVReady(), the viewer is recreated on each opening
+         */
+        #bindLayoutButtons(){
+            this.layoutButtons = Array.from(this.panoViewer?.querySelectorAll('.panoramax-layout-btn') ?? []);
+            this.layoutButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.#toggleLayout(btn.dataset.mode);
+                });
+            });
+            this.#updateLayoutButtons();
+        }
+
+        /**
+         * Icon, label and active state of each button according to the current mode
+         */
+        #updateLayoutButtons(){
+            this.layoutButtons.forEach(btn => {
+                const mode = btn.dataset.mode;
+                const active = (this.layoutMode === mode);
+                btn.classList.toggle('active', active);
+                if (mode === 'half') {
+                    btn.title = active ? TEXT.halfExit : TEXT.half;
+                    btn.innerHTML = active ? ICON_EXIT : ICON_HALF;
+                } else {
+                    btn.title = active ? TEXT.fullMapExit : TEXT.fullMap;
+                    btn.innerHTML = active ? ICON_EXIT : ICON_FULLMAP;
+                }
+            });
+        }
+
+        /**
+         * Button click: leave the mode if it is active, otherwise enter it
+         * (leaving the other mode first if needed)
+         * @param {'half'|'fullmap'} mode
+         */
+        #toggleLayout(mode){
+            const same = (this.layoutMode === mode);
+            if (this.layoutMode) this.#exitLayout();
+            if (!same) this.#enterLayout(mode);
+        }
+
+        /**
+         * Visible map area: #map-content minus the Lizmap dock width when it is open
+         * @returns {{top:number,left:number,width:number,height:number}} in viewport px
+         */
+        #getMapArea(){
+            const rect = document.getElementById('map-content').getBoundingClientRect();
+            let left = rect.left;
+            const dock = document.getElementById('dock');
+            // offsetParent is null when the dock is display:none
+            if (dock && dock.offsetParent !== null) {
+                const d = dock.getBoundingClientRect();
+                if (d.right > left && d.right < rect.right) left = d.right;
+            }
+            return { top: rect.top, left: left, width: rect.right - left, height: rect.height };
+        }
+
+        /**
+         * Write the fixed styles of the viewer, the map, the splitter or the thumbnail
+         * according to the current mode. Called again on resize and dock open / close.
+         */
+        #placeLayout(){
+            if (!this.layoutMode || !this.panoViewer) return;
+            const olMap = document.getElementById('newOlMap');
+            if (!olMap) return;
+            const area = this.#getMapArea();
+            const fixed = (top, left, width, height, z) =>
+                `position:fixed; top:${top}px; left:${left}px; width:${width}px; height:${height}px; z-index:${z};`;
+
+            if (this.layoutMode === 'half') {
+                const mapWidth = Math.round(area.width * this.splitPercent / 100);
+                olMap.style.cssText = fixed(area.top, area.left, mapWidth, area.height, 750);
+                this.panoViewer.style.cssText = fixed(area.top, area.left + mapWidth, area.width - mapWidth, area.height, 1050);
+                if (this.splitter) {
+                    this.splitter.style.cssText = fixed(area.top, area.left + mapWidth - 3, 6, area.height, 1065);
+                }
+            } else {
+                this.panoViewer.style.cssText = fixed(area.top, area.left, area.width, area.height, 1050);
+                const left = area.left + MAP_THUMBNAIL_MARGIN;
+                const top = area.top + area.height - MAP_THUMBNAIL_MARGIN - MAP_THUMBNAIL_HEIGHT;
+                olMap.style.cssText = fixed(top, left, MAP_THUMBNAIL_WIDTH, MAP_THUMBNAIL_HEIGHT, 1060);
+                if (this.thumbnailOverlay) {
+                    this.thumbnailOverlay.style.cssText = fixed(top, left, MAP_THUMBNAIL_WIDTH, MAP_THUMBNAIL_HEIGHT, 1061);
+                }
+            }
+            this.#refreshMap();
+        }
+
+        /**
+         * Enter a mode. Assumes no mode is active (see #toggleLayout)
+         * @param {'half'|'fullmap'} mode
+         */
+        #enterLayout(mode){
+            const olMap = document.getElementById('newOlMap');
+            if (!LAYOUT_ENABLED || !olMap || !this.panoViewer || !document.getElementById('map-content')) {
+                if (DEBUG_MODE) console.warn("Layout mode: required elements not found");
+                return;
+            }
+            this.olMapStyleBackup = olMap.getAttribute('style') ?? '';
+
+            if (mode === 'half') {
+                this.splitPercent = SPLIT_DEFAULT_PERCENT;
+                this.#createSplitter();
+            } else {
+                this.thumbnailOverlay = document.createElement('div');
+                this.thumbnailOverlay.id = 'panoramax-map-thumbnail-overlay';
+                this.thumbnailOverlay.title = TEXT.fullMapExit;
+                this.thumbnailOverlay.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.#exitLayout();
+                });
+                document.body.appendChild(this.thumbnailOverlay);
+            }
+
+            // Recompute positions when the window or the Lizmap dock changes
+            this.placeHandler = () => requestAnimationFrame(() => this.#placeLayout());
+            window.addEventListener('resize', this.placeHandler);
+            lizMap.events.on({ 'dockopened': this.placeHandler, 'dockclosed': this.placeHandler });
+
+            this.layoutMode = mode;
+            this.#placeLayout();
+            this.#updateLayoutButtons();
+        }
+
+        /**
+         * Leave the active mode and restore the original styles
+         */
+        #exitLayout(){
+            if (!this.layoutMode) return;
+            if (this.placeHandler) {
+                window.removeEventListener('resize', this.placeHandler);
+                lizMap.events.un({ 'dockopened': this.placeHandler, 'dockclosed': this.placeHandler });
+                this.placeHandler = null;
+            }
+            if (this.splitter) this.splitter.style.cssText = 'display:none;';
+            document.body.classList.remove('panoramax-splitting');
+            if (this.thumbnailOverlay) {
+                this.thumbnailOverlay.remove();
+                this.thumbnailOverlay = null;
+            }
+            const olMap = document.getElementById('newOlMap');
+            if (olMap) olMap.setAttribute('style', this.olMapStyleBackup);
+            if (this.panoViewer) this.panoViewer.setAttribute('style', this.viewerStyleBackup);
+
+            this.layoutMode = null;
+            this.#updateLayoutButtons();
+            this.#refreshMap();
+        }
+
+        /**
+         * Create the splitter once (hidden) and attach the pointer events
+         * Its position is written by #placeLayout() in half-screen mode
+         */
+        #createSplitter(){
+            if (this.splitter) return;
+            this.splitter = document.createElement('div');
+            this.splitter.id = 'panoramax-splitter';
+            this.splitter.style.cssText = 'display:none;';
+
+            this.splitHandlers = {
+                down: (e) => {
+                    e.preventDefault();
+                    this.splitter.setPointerCapture(e.pointerId);
+                    document.body.classList.add('panoramax-splitting');
+                    this.splitter.addEventListener('pointermove', this.splitHandlers.move);
+                },
+                move: (e) => this.#onSplitMove(e),
+                up: (e) => {
+                    if (this.splitter.hasPointerCapture(e.pointerId)) {
+                        this.splitter.releasePointerCapture(e.pointerId);
+                    }
+                    document.body.classList.remove('panoramax-splitting');
+                    this.splitter.removeEventListener('pointermove', this.splitHandlers.move);
+                }
+            };
+            this.splitter.addEventListener('pointerdown', this.splitHandlers.down);
+            this.splitter.addEventListener('pointerup', this.splitHandlers.up);
+            this.splitter.addEventListener('pointercancel', this.splitHandlers.up);
+            document.body.appendChild(this.splitter);
+        }
+
+        /**
+         * Convert the pointer X position into a bounded map share and reposition
+         * @param {PointerEvent} e
+         */
+        #onSplitMove(e){
+            const area = this.#getMapArea();
+            if (area.width === 0) return;
+            const percent = (e.clientX - area.left) / area.width * 100;
+            this.splitPercent = Math.min(SPLIT_MAX_PERCENT, Math.max(SPLIT_MIN_PERCENT, percent));
+            this.#placeLayout();
         }
     
         /**
@@ -482,7 +755,8 @@ const lizmapPanoramax = function() {
                         
             // Réinitialiser le composant    
             this.panoViewer = viewerElement;
-            this.panoViewer.select(null, null, false);     
+            this.viewerStyleBackup = this.panoViewer.getAttribute('style') ?? '';
+            this.panoViewer.select(null, null, false);  
             
             const player = document.createElement('pnx-widget-player');
             player._parent = viewerElement;
@@ -490,6 +764,7 @@ const lizmapPanoramax = function() {
             viewerElement.insertAdjacentElement('afterend', player);
             
             this.#addPanoramaxViewerEvent();
+            this.#bindLayoutButtons();
         }
     
         /**
@@ -547,6 +822,8 @@ const lizmapPanoramax = function() {
          */
         removePanoramaxDock(){      
             this.panoramaxDockOpen = false;
+            // Back to the normal layout before removing the viewer
+            this.#exitLayout();
             lizMap.mainLizmap.popup.active = true;
 
             // Remove all event listeners
@@ -568,6 +845,7 @@ const lizmapPanoramax = function() {
                     document.querySelector("#panoramax_dock_content").insertAdjacentHTML('beforeend', PHOTO_VIEWER);    
                 }
                 this.panoViewer = null;
+                this.layoutButtons = [];
             }
         }
     }
