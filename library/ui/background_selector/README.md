@@ -11,7 +11,7 @@ Use `background_selector_3.9.js` **and** `background_selector_3.9.css`. Copy bot
 A badge on the bottom of the map shows the current base layer. Click it to open a panel listing every base layer of the project, each with a thumbnail and its title,
 then click a row to switch. The panel closes when you pick a base layer, press `Escape`, click outside, or click the badge again.
 
-**Despite the previous version, no PNG image needs** to be shipped anymore: thumbnails are generated live from the project and the current map view.
+**Unlike the previous version, no PNG image needs** to be shipped anymore: thumbnails are generated live from the project and the current map view.
 
 * Base layers published by the QGIS project (WMS): a small `GetMap` request (128 x 128 px) to the Lizmap server.
 * External base layers (OpenStreetMap, IGN WMTS, Bing, Google...): one tile of the layer source already loaded by the map.
