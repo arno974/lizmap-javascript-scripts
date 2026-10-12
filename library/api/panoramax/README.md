@@ -78,7 +78,7 @@ This script displays photos from the Panoramax project (https://panoramax.fr) in
 
 Two files are provided:
 
-- **`panoramax4_3.9.js`**: **RECOMMENED VERSION**. Uses the Panoramax V4 web-viewer (Web Components) and creates the Panoramax point layers in the map by itself.
+- **`panoramax4_3.9.js`**: **RECOMMENDED VERSION**. Uses the Panoramax V4 web-viewer (Web Components) and creates the Panoramax point layers in the map by itself.
 - **`panoramax3_3.9.legacy.js`**: former version based on the V3 API and on a Panoramax layer added to the QGIS project. Kept for reference, no longer maintained, should not be used, without the display modes described below.
 
 ## Requirements

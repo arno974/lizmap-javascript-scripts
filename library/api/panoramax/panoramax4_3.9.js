@@ -22,12 +22,12 @@ const lizmapPanoramax = function() {
     // LAYOUT MODES (only when DOCK_POSITION is 'minidock')
     // "half screen": map on the left, photos on the right, draggable splitter
     // "full map"   : photos take the map area, the map becomes a thumbnail
-    const SPLIT_DEFAULT_PERCENT = 50;   // percent of the screen occupied by the photo viewer in half-screen mode
+    const SPLIT_DEFAULT_PERCENT = 50;   // map share (left side) in half-screen mode
     const SPLIT_MIN_PERCENT = 20;       // separator bounds
     const SPLIT_MAX_PERCENT = 80;
     const MAP_THUMBNAIL_WIDTH = 240;    // thumbnail width in full-panoramax mode
     const MAP_THUMBNAIL_HEIGHT = 160;
-    const MAP_THUMBNAIL_MARGIN = 20;    // distance from the right and bottom edges of the map in full-panoramax mode
+    const MAP_THUMBNAIL_MARGIN = 20;    // thumbnail distance from the bottom and left edges (px)
     
     // ARROW ICON PROPERTIES
     const ARROW_ICON_SIZE = 0.3;
@@ -100,7 +100,7 @@ const lizmapPanoramax = function() {
     //IF the navigator.language is not listed in CONTENT_TEXT => switch to the DEFAULT_LANGUAGE
     const TEXT = CONTENT_TEXT[NAVIGATOR_LANGUAGE] ? CONTENT_TEXT[NAVIGATOR_LANGUAGE] : CONTENT_TEXT[DEFAULT_LANGUAGE];
 
-    //Layout mode only whith minidock
+    //Layout mode only with minidock
     const LAYOUT_ENABLED = (DOCK_POSITION === 'minidock');
 
     const DEBUG_MODE = false;
@@ -139,7 +139,7 @@ const lizmapPanoramax = function() {
         .panoramax-layout-btn:hover { background: #f0f0f0; }
         .panoramax-layout-btn.active { background: #333; color: #fff; }
 
-        /* Séparateur du mode moitié d'écran (position et taille posées inline) */
+        /* Half-screen mode splitter (position and size written inline) */
         #panoramax-splitter {
             cursor: col-resize; touch-action: none;
             background: rgba(255,255,255,.5);
@@ -148,7 +148,7 @@ const lizmapPanoramax = function() {
         #panoramax-splitter:hover, body.panoramax-splitting #panoramax-splitter { background: #fff; }
         body.panoramax-splitting { user-select: none; }
 
-        /* Vignette carte du mode pleine carte (position et taille posées inline) */
+        /* Full-map mode map thumbnail (position and size written inline) */
         #panoramax-map-thumbnail-overlay {
             box-sizing: border-box;
             border: 2px solid #fff;
@@ -156,7 +156,7 @@ const lizmapPanoramax = function() {
             cursor: pointer;
         }
 
-        /* Mobile Lizmap : aucun mode de layout */
+        /* Lizmap mobile display: no layout mode */
         #content.mobile .panoramax-layout-btns { display: none !important; }
     `;
 
@@ -552,7 +552,7 @@ const lizmapPanoramax = function() {
 
                 // Create VectorTile layer
                 const layer = new lizMap.ol.layer.VectorTile({
-                    title: `${PANORAMAX_LAYER_CONFIG}.name ${key}`,
+                    title: `${PANORAMAX_LAYER_CONFIG.name} ${key}`,
                     source: source,
                     zIndex: PANORAMAX_LAYER_CONFIG.zIndex,
                     style: this.#setPanoramaxLayerStyle(),
@@ -611,15 +611,9 @@ const lizmapPanoramax = function() {
             this.panoramaxLayerClickHandler = (e) => {
                 if (!this.panoramaxDockOpen) return;                
             
-                const features = lizMap.mainLizmap.map.getFeaturesAtPixel(e.pixel, 
-                    function (feature) {     
-                        return feature;
-                    },{
-                    layerFilter: (layer) => {
-                        return this.panoramaxVectorLayers && 
-                            this.panoramaxVectorLayers.some(({ layer: l }) => l === layer);
-                    }
-                });  
+                const features = lizMap.mainLizmap.map.getFeaturesAtPixel(e.pixel, {
+                    layerFilter: (layer) => this.panoramaxVectorLayers?.includes(layer) ?? false
+                }); 
             
                 if (features.length > 0) {                      
                     const feature = features[0];                  
