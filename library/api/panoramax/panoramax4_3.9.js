@@ -14,17 +14,20 @@ const lizmapPanoramax = function() {
     const DOCK_ICON = 'icon-camera';
     
     // Dock position: can be dock, minidock
-    const DOCK_POSITION = 'dock';
-
-    // BUFFER RADIUS FOR PANORAMAX SEARCH (in map units)
-    const BUFFER_RADIUS = 3;
-    
+    const DOCK_POSITION = 'minidock';
+        
     // Title of the dock
     const DOCK_TITLE = 'Panoramax';
     
-    // Panoramax Vector Tile Layer in QGIS
-    // VERY IMPORTANT => The layer name must be the same as the one in QGIS
-    const PANORAMAX_QGIS_LAYER_NAME = "Panoramax"
+    // LAYOUT MODES (uniquement quand DOCK_POSITION vaut 'minidock')
+    // "moitié d'écran" : carte à gauche, photos à droite, séparateur déplaçable
+    // "pleine carte"   : les photos prennent la zone carte, la carte devient une vignette
+    const SPLIT_DEFAULT_PERCENT = 50;   // part de la carte (à gauche) en moitié d'écran
+    const SPLIT_MIN_PERCENT = 20;       // bornes du séparateur
+    const SPLIT_MAX_PERCENT = 80;
+    const MAP_THUMBNAIL_WIDTH = 240;    // vignette carte en pleine carte (px)
+    const MAP_THUMBNAIL_HEIGHT = 160;
+    const MAP_THUMBNAIL_MARGIN = 20;    // distance aux bords bas et gauche
     
     // ARROW ICON PROPERTIES
     const ARROW_ICON_SIZE = 0.3;
@@ -33,22 +36,73 @@ const lizmapPanoramax = function() {
     const PANORAMAX_INSTANCE = 'https://api.panoramax.xyz/api';
     
     const CONTENT_TEXT = {
-        "fr"  : "Veuillez cliquer sur un point de la couche Panoramax pour afficher les photos."
-        ,"en" : "Please click on a point in the Panoramax layer to display the photos."
-        ,"it" : "Per favore, fai clic su un punto del livello Panoramax per visualizzare le foto."
-        ,"es" : "Por favor, haz clic en un punto de la capa Panoramax para mostrar las fotos."
-        ,"de" : "Bitte klicken Sie auf einen Punkt in der Panoramax-Schicht, um die Fotos anzuzeigen."
-        ,"pt" : "Por favor, clique em um ponto da camada Panoramax para exibir as fotos."
-        ,"nl" : "Klik alstublieft op een punt in de Panoramax-laag om de foto's te bekijken."
-        ,"pl" : "Kliknij punkt na warstwie Panoramax, aby wyświetlić zdjęcia."
+        "fr": {
+            click: "Veuillez cliquer sur un point de la couche Panoramax pour afficher les photos.",
+            half: "Afficher la carte et les photos côte à côte",
+            halfExit: "Revenir à la disposition normale",
+            fullMap: "Afficher les photos sur toute la carte",
+            fullMapExit: "Revenir à la carte"
+        },
+        "en": {
+            click: "Please click on a point in the Panoramax layer to display the photos.",
+            half: "Show map and photos side by side",
+            halfExit: "Back to normal layout",
+            fullMap: "Show photos over the whole map",
+            fullMapExit: "Back to the map"
+        },
+        "it": {
+            click: "Per favore, fai clic su un punto del livello Panoramax per visualizzare le foto.",
+            half: "Mostra mappa e foto affiancate",
+            halfExit: "Torna alla disposizione normale",
+            fullMap: "Mostra le foto su tutta la mappa",
+            fullMapExit: "Torna alla mappa"
+        },
+        "es": {
+            click: "Por favor, haz clic en un punto de la capa Panoramax para mostrar las fotos.",
+            half: "Mostrar mapa y fotos lado a lado",
+            halfExit: "Volver a la disposición normal",
+            fullMap: "Mostrar las fotos en todo el mapa",
+            fullMapExit: "Volver al mapa"
+        },
+        "de": {
+            click: "Bitte klicken Sie auf einen Punkt in der Panoramax-Schicht, um die Fotos anzuzeigen.",
+            half: "Karte und Fotos nebeneinander anzeigen",
+            halfExit: "Zurück zur normalen Ansicht",
+            fullMap: "Fotos über die ganze Karte anzeigen",
+            fullMapExit: "Zurück zur Karte"
+        },
+        "pt": {
+            click: "Por favor, clique em um ponto da camada Panoramax para exibir as fotos.",
+            half: "Mostrar mapa e fotos lado a lado",
+            halfExit: "Voltar à disposição normal",
+            fullMap: "Mostrar as fotos em todo o mapa",
+            fullMapExit: "Voltar ao mapa"
+        },
+        "nl": {
+            click: "Klik alstublieft op een punt in de Panoramax-laag om de foto's te bekijken.",
+            half: "Kaart en foto's naast elkaar tonen",
+            halfExit: "Terug naar de normale weergave",
+            fullMap: "Foto's over de hele kaart tonen",
+            fullMapExit: "Terug naar de kaart"
+        },
+        "pl": {
+            click: "Kliknij punkt na warstwie Panoramax, aby wyświetlić zdjęcia.",
+            half: "Pokaż mapę i zdjęcia obok siebie",
+            halfExit: "Wróć do normalnego układu",
+            fullMap: "Pokaż zdjęcia na całej mapie",
+            fullMapExit: "Wróć do mapy"
+        }
     };
     
     //Change text depending on navigator language
     const DEFAULT_LANGUAGE = "en"
     const NAVIGATOR_LANGUAGE = navigator.language ? navigator.language.slice(0, 2) : DEFAULT_LANGUAGE;
     //IF the navigator.language is not listed in CONTENT_TEXT => switch to the DEFAULT_LANGUAGE
-    const POPUP_TEXT = CONTENT_TEXT[NAVIGATOR_LANGUAGE] ? CONTENT_TEXT[NAVIGATOR_LANGUAGE] : CONTENT_TEXT[DEFAULT_LANGUAGE];
-    
+    const TEXT = CONTENT_TEXT[NAVIGATOR_LANGUAGE] ? CONTENT_TEXT[NAVIGATOR_LANGUAGE] : CONTENT_TEXT[DEFAULT_LANGUAGE];
+
+    //Layout mode only whith minidock
+    const LAYOUT_ENABLED = (DOCK_POSITION === 'minidock');
+
     const DEBUG_MODE = false;
     
     /** ********************************
@@ -57,58 +111,80 @@ const lizmapPanoramax = function() {
      ###################################
      ******************************** */
     
-    const PANORAMAX_JS_URL = 'https://cdn.jsdelivr.net/npm/@panoramax/web-viewer@latest/build/index.min.js';
-    const PANORAMAX_CSS_URL = 'https://cdn.jsdelivr.net/npm/@panoramax/web-viewer@latest/build/index.min.css'
+    const PANORAMAX_JS_URL = 'https://cdn.jsdelivr.net/npm/@panoramax/web-viewer@4.4.0/build/index.min.js';
+    const PANORAMAX_CSS_URL = 'https://cdn.jsdelivr.net/npm/@panoramax/web-viewer@4.4.0/build/index.min.css'
     
     // HTML Content 
     const PHOTO_VIEWER = `<pnx-photo-viewer 
                                     endpoint="${PANORAMAX_INSTANCE}"
                                     widgets="false"
+                                    map="false"
                                     url-parameters="false"
                                     style="width: 100%; height: 300px;">
                                 </pnx-photo-viewer>`;
 
     const HTML_TEMPLATE = `<div id="panoramax_dock_content">
-                            <p>${POPUP_TEXT}</p>
+                            <p>${TEXT.click}</p>
                             ${PHOTO_VIEWER}
                         </div>`;
     
     const SVG_ARROW = `<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><path d="M48.005 2.666a2.386 2.386 0 0 0-.51.397 2.386 2.386 0 0 0-.531.844l-33.169 90.76a2.386 2.386 0 0 0 3.52 2.836l32.08-20.345 32.186 20.177a2.386 2.386 0 0 0 3.506-2.854L51.442 3.894a2.386 2.386 0 0 0-3.437-1.228Z" style="color:#000;font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:medium;line-height:normal;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-variant-east-asian:normal;font-feature-settings:normal;font-variation-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000;letter-spacing:normal;word-spacing:normal;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;shape-margin:0;inline-size:0;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000;solid-opacity:1;vector-effect:none;fill:${ARROW_ICON_COLOR};fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;stop-color:#000"/></svg>`;
     
+    const PANORAMAX_SOURCES = {
+        IGN: {
+            url: 'https://panoramax.ign.fr/api/map/{z}/{x}/{y}.mvt',
+            maxZoom: 15,
+        },
+        OSM: {
+            url: 'https://panoramax.openstreetmap.fr/api/map/{z}/{x}/{y}.mvt',
+            maxZoom: 15,
+        }
+    };
+
+    const PANORAMAX_LAYER_CONFIG = {
+        name: 'Panoramax Images',
+        visibleOnStartUp: false,       
+        zIndex: 100
+    };
+
     class LizPanoramax{
         constructor(){
-            //Check if Panoramax Layer exists. If not, display an error message and exit directly
-            this.panoramaxLayer = this.#getPanoramaxLayer();
+            // Initialize state
             this.panoramaxDockOpen = false;
-
+            this.panoramaxVectorLayers = null;  
+            this.panoramaxLayersGroup = null;   
+            
+            // Initialize map handlers
             this.mapClickHandler = null;
+            this.panoramaxLayerClickHandler = null; 
+            
+            // Initialize viewer listeners
             this.panoViewerListeners = {
                 'psv:view-rotated': null,
                 'psv:picture-loaded': null
             };
 
-            if(!this.panoramaxLayer) {       
-                // check if there is a panoramax layer in the project      
-                const error = `No Panoramax layer available. 
-                               You must add a Panoramax Layer into your QGIS project 
-                               and be sure that the PANORAMAX_QGIS_LAYER_NAME is the same as your QGIS Panoramax Layer name`
-                if (DEBUG_MODE)  console.error(error);
-                this.#addLizmapDock(`<p style="color:red; font-weight:bold;"> ${error} </p>`);
-                return
-            }
-    
-            //Panoramax Layer has been found. The JS/CSS Script can be loaded
+            // Load external scripts (Panoramax viewer)
             this.#loadScripts().then(success => {
                 if(!success){                
-                    const error = "Panoramax external script not fully loaded"
+                    const error = "Panoramax external script not fully loaded";
                     if (DEBUG_MODE) console.error(error);
                     this.#addLizmapDock(`<p style="color:red; font-weight:bold;"> ${error} </p>`);
-                    return
+                    return;
                 }
                 
-                // everything is good we can display the "normal" dock content
-                this.#addLizmapDock(HTML_TEMPLATE);                
-            });            
+                // Scripts loaded successfully, display dock content
+                this.#addLizmapDock(HTML_TEMPLATE);
+                
+                // Create Vector Tile layers (no longer dependent on QGIS)
+                if (!this.panoramaxVectorLayers) {
+                    this.panoramaxVectorLayers = this.#addPanoramaxVectorLayers();
+                    
+                    if (DEBUG_MODE) {
+                        console.log('Panoramax Vector Tile layers created and registered');
+                    }
+                }
+            });
         }
        
         /**
@@ -120,7 +196,6 @@ const lizmapPanoramax = function() {
 
                 let scriptLoaded = !!document.querySelector(`script[src="${PANORAMAX_JS_URL}"]`);
                 let cssLoaded = !!document.querySelector(`link[href="${PANORAMAX_CSS_URL}"]`);
-
 
                 let jsPromise, cssPromise;
 
@@ -157,27 +232,20 @@ const lizmapPanoramax = function() {
                     cssPromise = Promise.resolve(true);
                 }
 
-                Promise.all([jsPromise, cssPromise]).then(results => {
-                    // Si l'un des deux a échoué, on retourne false
+                Promise.race([
+                    Promise.all([jsPromise, cssPromise]),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('CDN timeout')), 10000)
+                    )
+                ]).then(results => {
                     resolve(results.every(Boolean));
-                });       
+                }).catch(error => {
+                    if (DEBUG_MODE) console.error('Script loading failed:', error);
+                    resolve(false);
+                });      
             });
         }
-    
-        /**
-         * Get Panoramax Layer
-         * The PANORAMAX_QGIS_LAYER_NAME must be the same as the one QGIS 
-         * @returns OpenLayers Layer
-         */
-        #getPanoramaxLayer(){
-            try {
-                let PanoramaxLayer = lizMap.mainLizmap.state.rootMapGroup.getMapLayerByName(PANORAMAX_QGIS_LAYER_NAME);
-                return PanoramaxLayer;
-            } catch (error) {
-                return false
-            }        
-        }
-    
+
         /**
          * Add Lizmap Dock
          * @param {*} htmlContent 
@@ -191,6 +259,116 @@ const lizmapPanoramax = function() {
                 DOCK_ICON
             );
         }
+    
+        /**
+        * Create and add Panoramax Vector Tile layers to the map
+        * @returns {Array} Array of panoramax layers
+        */
+        #addPanoramaxVectorLayers() {
+            const layers = [];
+            
+            Object.entries(PANORAMAX_SOURCES).forEach(([key, config]) => {
+                
+                // Create VectorTile source
+                const source = new lizMap.ol.source.VectorTile({
+                    url: config.url,
+                    format: new lizMap.ol.format.MVT(),
+                    maxZoom: config.maxZoom,
+                    tileGridStrategy: 'all'
+                });               
+
+                // Create VectorTile layer
+                const layer = new lizMap.ol.layer.VectorTile({
+                    title: `${PANORAMAX_LAYER_CONFIG}.name ${key}`,
+                    source: source,
+                    zIndex: PANORAMAX_LAYER_CONFIG.zIndex,
+                    style: this.#setPanoramaxLayerStyle(),
+                    projection: 'EPSG:3857'
+                });                
+
+                lizMap.mainLizmap.map.addLayer(layer);  
+                layer.setVisible(PANORAMAX_LAYER_CONFIG.visibleOnStartUp);
+                layers.push(layer);
+            });
+            return layers;
+        }
+
+        /**
+         * Define styling for Panoramax layers
+         * NOTE : COULD BE PASSED AS PARAMETERS FOR THE NEXT VERSION          
+         * @returns {Function} Style function
+         */
+        #setPanoramaxLayerStyle() {
+            // Default style
+            const fill = new lizMap.ol.style.Fill({
+                color: 'rgba(255,255,255,0.4)',
+            });
+            const stroke = new lizMap.ol.style.Stroke({
+                color: '#3399CC',
+                width: 1.25,
+            });
+            const style = new lizMap.ol.style.Style({
+                image: new lizMap.ol.style.Circle({
+                    fill: fill,
+                    stroke: stroke,
+                    radius: 5,
+                }),
+                fill: fill,
+                stroke: stroke,
+            });
+            return style;
+        }
+
+        /**
+         * Toggle Panoramax layers visibility
+         * @param {boolean} visible 
+         */
+        #setPanoramaxLayersVisibility(visible) {
+            if (this.panoramaxVectorLayers) {
+                this.panoramaxVectorLayers.forEach((layer) => {
+                    layer.setVisible(visible);
+                });
+            }
+        }
+
+        /**
+         * Add click handler to Panoramax vector tile layers
+         */
+        #addPanoramaxLayerClickEvent() {
+            this.panoramaxLayerClickHandler = (e) => {
+                if (!this.panoramaxDockOpen) return;                
+            
+                const features = lizMap.mainLizmap.map.getFeaturesAtPixel(e.pixel, 
+                    function (feature) {     
+                        return feature;
+                    },{
+                    layerFilter: (layer) => {
+                        return this.panoramaxVectorLayers && 
+                            this.panoramaxVectorLayers.some(({ layer: l }) => l === layer);
+                    }
+                });  
+            
+                if (features.length > 0) {                      
+                    const feature = features[0];                  
+                    if(feature.getProperties()?.id){
+                        const pictureId = feature.getProperties().id;
+                        this.panoViewer?.select?.(null, pictureId, true);
+                        this.#setPanoramaxHeadingLayer(feature);        
+                    }                       
+                }
+            };
+            lizMap.mainLizmap.map.on('singleclick', this.panoramaxLayerClickHandler);
+        }
+
+        /**
+         * Remove Vector Tile layer click handler
+         */
+        #removePanoramaxLayerClickEvent() {
+            if (this.panoramaxLayerClickHandler) {
+                lizMap.mainLizmap.map.un('singleclick', this.panoramaxLayerClickHandler);
+                this.panoramaxLayerClickHandler = null;
+            }
+        }        
     
         /**
          * add layer to draw that will be used to draw arrow direction
@@ -210,66 +388,77 @@ const lizmapPanoramax = function() {
             });
             this.layerArrowHeading.setZIndex(1001);
             lizMap.mainLizmap.map.addLayer(this.layerArrowHeading);
-            return 
+            return this.layerArrowHeading
         }
     
         /**
          * Set Arrow Heading depending on picture parameter
          * @param {Panoramax Picture} picture 
          */
-        #setPanoramaxHeadingLayerHeading(picture){
+        #setPanoramaxHeadingLayer(picFeature){           
             // Vérifie l'existence de la couche et de sa source avant de tenter de les utiliser
             if(!this.layerArrowHeadingSource || !this.layerArrowHeading) {
                 if (DEBUG_MODE) console.warn("Heading layer not initialized");
                 return;
-            }
-
-            // Valider les données
-            if(!picture.geometry?.coordinates || !picture.properties) {
-                if (DEBUG_MODE) console.warn("Invalid picture data", picture);
+            }      
+                        
+            if (!picFeature?.flatCoordinates_ || !Array.isArray(picFeature.flatCoordinates_) || picFeature.flatCoordinates_.length != 2){
+                if (DEBUG_MODE) console.warn("Wrong picture coordinates", picFeature.flatCoordinates_);
                 return;
             }
+            
+            // Accès à propriété privée OpenLayers
+            // Il doit y avoir un moyen plus simple d'accéder aux coordonnées 
+            // ex. getCoordinates() -> mais retourne une erreur
+            const [picLon, picLat] = picFeature.flatCoordinates_;
 
             const oldFeature = this.layerArrowHeadingSource.getFeatures()?.[0];
             if (oldFeature) {
                 this.layerArrowHeadingSource.removeFeature(oldFeature);
             }
-            
+
             this.layerArrowHeadingSource.addFeature(new lizMap.ol.Feature({
-                geometry: new lizMap.ol.geom.Point([
-                    picture.geometry.coordinates[0], 
-                    picture.geometry.coordinates[1]
-                ]).transform('EPSG:4326', lizMap.map.projection.projCode)
+                geometry: new lizMap.ol.geom.Point([picLon, picLat])
             }));
-            const azimuth = picture.properties["view:azimuth"] ?? 0;
+
+            lizMap.mainLizmap.map.getView().animate({
+                center: [picLon, picLat],
+                duration: 750,                       
+            });
+            
+            const azimuth = picFeature.getProperties?.()?.heading ?? 0;
             const r = azimuth * (Math.PI/180);
             this.layerArrowHeading.getStyle().getImage().setRotation(r);
             this.layerArrowHeading.changed();
         }
     
-        /**
-         * Hide/Show Panoramax layer
-         * @param {boolean} visibility 
-         */
-        #setPanoramaxLayerVisibility(visibility){
-            if(this.panoramaxLayer){
-                this.panoramaxLayer.checked = visibility;
-            }
-        }    
     
         /**
          * Init all the method
          */
         initPanoramaxDock(){
-            if(this.panoramaxLayer && !this.panoramaxDockOpen){
-                lizMap.mainLizmap.popup.active = false; //Empêche l'affichage du popup Lizmap au clic sur la carte pour éviter les conflits avec le clic pour récupérer les photos panoramax
-                this.panoramaxDockOpen = true;                
-                this.#addPanoramaxHeadingLayer(); 
-                this.#setPanoramaxLayerVisibility(true);
-                //Attendre que le DOM soit prêt
+            if(!this.panoramaxDockOpen){
+                // Vérifier que popup existe avant d'y accéder
+                if (lizMap?.mainLizmap?.popup) {
+                    lizMap.mainLizmap.popup.active = false;
+                }
+                this.panoramaxDockOpen = true;
+                
+                // Charger et enregistrer les couches VectorTile
+                if (!this.panoramaxVectorLayers) {
+                    this.panoramaxVectorLayers = this.#addPanoramaxVectorLayers();
+                }
+                
+                // Afficher les couches
+                this.#setPanoramaxLayersVisibility(true);
+                
+                // Ajouter les couches flèche de direction
+                this.#addPanoramaxHeadingLayer();
+                
+                // Attendre que le DOM soit prêt
                 setTimeout(() => {
                     this.#addPanoramaxViewer();
-                    this.#addMapEvent();
+                    this.#addPanoramaxLayerClickEvent();
                 }, 100);
             }
         }
@@ -284,11 +473,22 @@ const lizmapPanoramax = function() {
                 return;
             }
             // Attendre que le Photo Sphere Viewer soit vraiment prêt
-            await viewerElement.oncePSVReady();
-            
+            try {
+                await viewerElement.oncePSVReady();
+            } catch (error) {
+                console.error('Viewer initialization failed:', error);
+                return; // ou afficher message utilisateur
+            }
+                        
             // Réinitialiser le composant    
             this.panoViewer = viewerElement;
-            this.panoViewer.select(null, null, false);            
+            this.panoViewer.select(null, null, false);     
+            
+            const player = document.createElement('pnx-widget-player');
+            player._parent = viewerElement;
+            player.setAttribute('size', 'md');
+            viewerElement.insertAdjacentElement('afterend', player);
+            
             this.#addPanoramaxViewerEvent();
         }
     
@@ -296,9 +496,7 @@ const lizmapPanoramax = function() {
          * Add all Panoramax Viewer Events
          */
         #addPanoramaxViewerEvent(){
-            // Stocker les listeners AVEC les bonnes fonctions
-            this.panoViewerListeners['psv:view-rotated'] = (e) => {
-                
+            this.panoViewerListeners['psv:view-rotated'] = (e) => {                
                 if(e.detail?.x){
                     const azimuth = e.detail.x ?? 0; // Valeur par défaut            
                     let r = azimuth * (Math.PI/180); 
@@ -306,49 +504,28 @@ const lizmapPanoramax = function() {
                     this.layerArrowHeading.changed();
                 }
             };
-            
+
             this.panoViewerListeners['psv:picture-loaded'] = (e) => {
-                const azimuth = e.detail?.x ?? 0; // Valeur par défaut
-                let r = azimuth * (Math.PI/180);  
-                if(this.layerArrowHeadingSource.getFeatures()[0] 
-                && typeof e.detail?.lon === 'number' 
-                && typeof e.detail?.lat === 'number' ){
-                    const coords = lizMap.ol.proj.transform([e.detail.lon, e.detail.lat], 'EPSG:4326', lizMap.mainLizmap.projection);
-                    lizMap.mainLizmap.map.getView().setCenter(coords);
-                    this.layerArrowHeadingSource.getFeatures()[0].getGeometry().setCoordinates(coords);                        
+                if (!this.layerArrowHeadingSource || !this.layerArrowHeading) return;
+
+                const azimuth = e.detail.x ?? 0; // Valeur par défaut
+                let r = azimuth * (Math.PI/180);
+                const feature = this.layerArrowHeadingSource.getFeatures()[0];
+                if (feature
+                    && typeof e.detail?.lon === 'number'
+                    && typeof e.detail?.lat === 'number') {
+                        const coords = lizMap.ol.proj.transform([e.detail.lon, e.detail.lat], 'EPSG:4326', lizMap.mainLizmap.projection);
+                        lizMap.mainLizmap.map.getView().animate({ center: coords, duration: 750 });
+                        feature.getGeometry().setCoordinates(coords);
                 }
                 this.layerArrowHeading.getStyle().getImage().setRotation(r);
                 this.layerArrowHeading.changed();
             };
 
-            this.panoViewer.addEventListener('psv:view-rotated', this.panoViewerListeners['psv:view-rotated']);
             this.panoViewer.addEventListener('psv:picture-loaded', this.panoViewerListeners['psv:picture-loaded']);
+            this.panoViewer.addEventListener('psv:view-rotated', this.panoViewerListeners['psv:view-rotated']);
         }
     
-        /**
-         * Fetch picture on single map cick
-         */
-        #addMapEvent(){
-            // Créer une méthode nommée pour pouvoir la désabonner
-            this.mapClickHandler = (e) => {
-                //Fire event only if panoramax dock is opened 
-                if(this.panoramaxDockOpen){             
-                    const extent = this.#getBufferedExtent(e.coordinate);
-                    this.#getPanoramaxPicture(extent);
-                }            
-            };
-            lizMap.mainLizmap.map.on('singleclick', this.mapClickHandler);
-        }
-
-        /**
-         * Remove map click event listener
-         */
-        #removeMapEvent(){
-            if(this.mapClickHandler){
-                lizMap.mainLizmap.map.un('singleclick', this.mapClickHandler);
-                this.mapClickHandler = null;
-            }
-        }
 
         /**
          * Remove all Panoramax Viewer Events
@@ -362,92 +539,35 @@ const lizmapPanoramax = function() {
                     this.panoViewerListeners[eventName] = null;
                 }
             });
-        }
-    
-        /**
-         * 
-         * @param {*} point 
-         * @returns Array coordinates
-         */
-        #getBufferedExtent(p){
-            const point  = new lizMap.ol.geom.Point(p);
-            const extent = point.getExtent();
-            const bufferedExtent = new lizMap.ol.extent.buffer(extent,BUFFER_RADIUS);
-    
-            const pbl = new lizMap.ol.geom.Point([bufferedExtent[0], bufferedExtent[1]]); //bottom left
-            const pur = new lizMap.ol.geom.Point([bufferedExtent[2], bufferedExtent[3]]); //upper right
-    
-            if(lizMap.map.projection.projCode !== "EPSG:4326"){
-                // reproject extent to 4326
-                pbl.transform(lizMap.map.projection.projCode, 'EPSG:4326');
-                pur.transform(lizMap.map.projection.projCode, 'EPSG:4326');              
-            }
-            return [pbl.flatCoordinates, 
-                    pur.flatCoordinates];
-        }
-    
-        /**
-         * Query Panoramax API
-         * @param {[bl_x,bl_y,upr_x,up_y]} extent 
-         */
-        async #getPanoramaxPicture(extent){
-            //URL example : https://api.panoramax.xyz/api/search?limit=1&bbox=55.500236%2C-20.892392%2C55.500238%2C-20.892390
-            //Coord -20.89238774,55.50023601
-            // -> Should return 9df3252f-dcad-42db-b46e-6d3e52571acb photo id
-            
-            try {
-                const PanoramaxSearchParams = new URLSearchParams({ 
-                    'limit': 1 
-                    ,'bbox':`${extent[0][0].toFixed(6)},${extent[0][1].toFixed(6)},${extent[1][0].toFixed(6)},${extent[1][1].toFixed(6)}`
-                });
-                const response = await fetch(`${PANORAMAX_INSTANCE}/search?${PanoramaxSearchParams}`);
-                if (!response.ok) {
-                    const error = `Erreur HTTP: ${response.status}`;
-                    if (DEBUG_MODE)  console.error(error);
-                    throw new Error(error);                
-                }
-                const picture = await response.json();
-                if(picture?.features?.length > 0 && this.panoViewer){
-                    this.panoViewer?.select?.(null, picture.features[0].id, true);
-                    this.#setPanoramaxHeadingLayerHeading(picture.features[0]);
-                }
-            } catch (error) {
-                if (DEBUG_MODE)  console.error(error);
-                throw new Error(error);  
-            }
-        }
+        } 
+
     
         /**
          * Remove all Panoramax object and instance
          */
         removePanoramaxDock(){      
-            if(this.panoramaxLayer) {
-                lizMap.mainLizmap.popup.active = true;
-                this.panoramaxDockOpen = false;
+            this.panoramaxDockOpen = false;
+            lizMap.mainLizmap.popup.active = true;
 
-                // Remove map click listener
-                this.#removeMapEvent();
-                
-                // Remove Panoramax viewer listeners
-                this.#removePanoramaxViewerEvent();
-                
-                // Clear layer used for heading arrow
-                this.layerArrowHeadingSource.clear();
+            // Remove all event listeners
+            this.#removePanoramaxLayerClickEvent();
+            this.#removePanoramaxViewerEvent();
             
-                //Hide layer
-                this.#setPanoramaxLayerVisibility(false);
-    
-                // Remove all viewer references
-                if (this.panoViewer) {
-                    this.panoViewer.psv?.stopSequence?.();
-                    //this.panoViewer.destroy(); // --> Should be used for removing object but currently throwing an error
-                    const panoViewer = document.querySelector('#panoramax_dock_content pnx-photo-viewer');
-                    if(panoViewer){
-                        panoViewer.remove();
-                        document.querySelector("#panoramax_dock_content").insertAdjacentHTML('beforeend', PHOTO_VIEWER);    
-                    }
-                    this.panoViewer = null;
+            // Clear heading layer
+            this.layerArrowHeadingSource.clear();
+
+            // Hide Vector Tile layers
+            this.#setPanoramaxLayersVisibility(false);
+
+            // Cleanup Panoramax viewer
+            if (this.panoViewer) {
+                this.panoViewer.psv?.stopSequence?.();
+                const panoViewer = document.querySelector('#panoramax_dock_content pnx-photo-viewer');
+                if(panoViewer){
+                    panoViewer.remove();
+                    document.querySelector("#panoramax_dock_content").insertAdjacentHTML('beforeend', PHOTO_VIEWER);    
                 }
+                this.panoViewer = null;
             }
         }
     }
