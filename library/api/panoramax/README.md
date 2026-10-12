@@ -47,6 +47,21 @@ Si vous modifiez le nom du groupe ou de la couche Panoramax dans QGIS, vous devr
 Vous pouvez également personnaliser l'apparence du bouton ou le comportement d'affichage selon vos besoins via des
 ajustements dans le fichier JavaScript.
 
+## Modes d'affichage (V4, position minidock uniquement)
+
+Quand `DOCK_POSITION` vaut `minidock`, deux boutons en haut à droite du viewer changent
+la disposition :
+
+- **Moitié d'écran.** La zone carte est partagée entre la carte à gauche et les photos à droite. Un séparateur entre les deux se déplace à la souris (de 20 % à 80 %). Si un panneau Lizmap est ouvert (couches, impression, etc.), la carte et les photos se placent à
+  sa droite.
+- **Pleine carte.** Les photos prennent toute la zone carte et la carte devient une vignette   en bas à gauche, qui continue de suivre la navigation. Un clic sur la vignette rétablit la disposition normale.
+
+Un second clic sur le bouton actif, ou la fermeture du minidock, rétablit la disposition normale. Les deux modes sont désactivés en affichage mobile et n'existent pas en position `dock`. Les constantes `SPLIT_*` et `MAP_THUMBNAIL_*` en tête du script permettent d'ajuster la répartition par défaut, les bornes du séparateur et la taille de la vignette.
+
+`![alt text](half-panoramax.png)`
+
+`![alt text](full-panoramax.png)`
+
 # (EN) Panoramax
 
 This script allows you to display photos from the Panoramax project (https://panoramax.openstreetmap.fr/ and/or
@@ -55,15 +70,26 @@ projection for this script to work. QGIS will handle the reprojection.
 
 ![alt text](image-3.png)
 
+## Display modes (V4, minidock position only)
+
+When `DOCK_POSITION` is `minidock`, two buttons at the top right of the viewer change the
+layout:
+
+- **Half screen.** The map area is shared between the map on the left and the photos on the   right. A splitter between them can be dragged (from 20% to 80%). If a Lizmap panel is open   (layers, print, etc.), the map and the photos are placed to its right. 
+- **Full map.** The photos take the whole map area and the map becomes a thumbnail at the   bottom left, still following the navigation. Clicking the thumbnail restores the normal layout.
+
+A second click on the active button, or closing the minidock, restores the normal layout. Both modes are disabled on mobile display and do not exist in the `dock` position. The `SPLIT_*` and `MAP_THUMBNAIL_*` constants at the top of the script adjust the default split, the splitter bounds and the thumbnail size.
+
+`![alt text](half-panoramax.png)`
+
+`![alt text](full-panoramax.png)`
+
+
 ## Requirements
 
 - Lizmap Web Client ≥ 3.8
 
-- For performance reasons and because OpenLayers does not allow the reprojection of vector tiles, **the Panoramax data
-  layer(s) must be added from your QGIS project**. **A layer or group named Panoramax must exist in your QGIS project.
-  Otherwise, the script will generate an error**. You can change the name of your layer/group, but in that case, you
-  will need to modify the PANORAMAX_QGIS_LAYER_NAME variable in the script to match the name of your layer. You can
-  also modify the vector tiles style in QGIS.
+- For performance reasons and because OpenLayers does not allow the reprojection of vector tiles, **the Panoramax data   layer(s) must be added from your QGIS project**. **A layer or group named Panoramax must exist in your QGIS project.   Otherwise, the script will generate an error**. You can change the name of your layer/group, but in that case, you will need to modify the PANORAMAX_QGIS_LAYER_NAME variable in the script to match the name of your layer. You can also modify the vector tiles style in QGIS.
 
 ![alt text](image.png)
 ![alt text](image-1.png)
@@ -75,7 +101,6 @@ Two JavaScript files are available:
 - **panoramax4_3.9.js**: uses the Panoramax V4 API (Web Components, recommended)
 
 **We recommend using V4**, which is more modern and better maintained.
-
 
 To use the Panoramax script in your project:
 1. ensure you have a Panoramax layer present in your QGIS project
